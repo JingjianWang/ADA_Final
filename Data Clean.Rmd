@@ -1,0 +1,399 @@
+---
+title: "Data Clean"
+author: "Jingjian Wang"
+date: '2022-11-28'
+output: html_document
+---
+
+library
+```{r}
+pacman::p_load(haven, tidyverse, dplyr)
+```
+
+import data from 2016 to 2021
+
+```{r}
+D21<-read_xpt("/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/LLCP2021.XPT ",
+col_select = c("PREGNANT", "RENTHOM1", "GENHLTH", "_INCOMG1", "_EDUCAG", "_MENT14D", "_AGE80", "_AGE_G", "_IMPRACE", "EMPLOY1"),skip = 0,n_max = Inf,.name_repair = "unique")
+D20<-read_xpt("/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/LLCP2020.XPT ",
+col_select = c("PREGNANT", "RENTHOM1", "GENHLTH", "_INCOMG", "_EDUCAG", "_MENT14D", "_AGE80", "_AGE_G", "_IMPRACE", "EMPLOY1"),skip = 0,n_max = Inf,.name_repair = "unique")
+D19<-read_xpt("/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/LLCP2019.XPT ",
+col_select = c("PREGNANT", "RENTHOM1", "GENHLTH", "_INCOMG", "_EDUCAG", "_MENT14D", "_AGE80", "_AGE_G", "_IMPRACE", "EMPLOY1"),skip = 0,n_max = Inf,.name_repair = "unique")
+D18<-read_xpt("/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/LLCP2018.XPT ",
+col_select = c("PREGNANT", "RENTHOM1", "GENHLTH", "_INCOMG", "_EDUCAG", "_MENT14D", "_AGE80", "_AGE_G", "_IMPRACE", "EMPLOY1"),skip = 0,n_max = Inf,.name_repair = "unique")
+D17<-read_xpt("/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/LLCP2017.XPT ",
+col_select = c("PREGNANT", "RENTHOM1", "GENHLTH", "_INCOMG", "_EDUCAG", "_MENT14D", "_AGE80", "_AGE_G", "_IMPRACE", "EMPLOY1"),skip = 0,n_max = Inf,.name_repair = "unique")
+D16<-read_xpt("/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/LLCP2016.XPT ",
+col_select = c("PREGNANT", "RENTHOM1", "GENHLTH", "_INCOMG", "_EDUCAG", "_MENT14D", "_AGE80", "_AGE_G", "_RACE", "EMPLOY1"),skip = 0,n_max = Inf,.name_repair = "unique")
+```
+In variable Mental Health Status, those with more than half of the days in a month feeling not good are regarded as with 'Bad' mental health status.
+In variable Employment, student is regarded as being employed.
+In variable Age, the age was recoded as '18-34' years old and more than 34 years old.
+In variable Education, education level was recoded as 'less than high school', 'high school', and 'college or technical school'.
+
+```{r}
+D21.little <- D21 %>%
+  filter(PREGNANT == 1 & `_INCOMG1` %in% c('4','5','6','7')) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM1, 
+                                '1' = 'No',
+                                '2' = 'Yes',
+                                '3' = NA_character_,
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(GHLTH = recode_factor(GENHLTH, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Good',
+                                '4' = 'Bad',
+                                '5' = 'Bad',
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(MHLTH = recode_factor(`_MENT14D`, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Bad',
+                                '9' = NA_character_)) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY1, 
+                                '1' = 'Yes',
+                                '2' = 'Yes',
+                                '3' = 'No',
+                                '4' = 'No',
+                                '5' = 'No',
+                                '6' = 'Yes',
+                                '7' = 'No',
+                                '8' = 'No',
+                                '9' = NA_character_)) %>%
+  mutate(Race = recode_factor(`_IMPRACE`,
+                                '1' = 'White, NH',
+                                '2' = 'Black, NH',
+                                '3' = 'Asian, NH',
+                                '4' = 'American Indian/Alaska Native,NH',
+                                '5' = 'Hispanic',
+                                '6' = 'Other, NH')) %>%
+  mutate(Age = `_AGE80`) %>%
+  mutate(AgeG = recode_factor(`_AGE_G`,
+                                '1' = '18-34',
+                                '2' = '18-34',
+                                '3' = '34+',
+                                '4' = '34+',
+                                '5' = '34+',
+                                '6' = '34+')) %>%
+  mutate(EDU = recode_factor(`_EDUCAG`,
+                                '1' = 'Less than High School',
+                                '2' = 'High School',
+                                '3' = 'College or Technical school',
+                                '4' = 'College or Technical school',
+                                '9' = NA_character_)) %>%
+  mutate(YEAR = 2021) %>%
+  select("RENTHOM", "GHLTH", "MHLTH", "EMPLOY", "Race", "Age", "AgeG", "EDU", "YEAR")
+summary(D21.little)
+```
+
+Before 2021, the variable `_INCOMG1` is not available, and `_INCOMG` is used here.
+```{r}
+D20.little <- D20 %>%
+  filter(PREGNANT == 1 & `_INCOMG` %in% c('4','5')) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM1, 
+                                '1' = 'No',
+                                '2' = 'Yes',
+                                '3' = NA_character_,
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(GHLTH = recode_factor(GENHLTH, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Good',
+                                '4' = 'Bad',
+                                '5' = 'Bad',
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(MHLTH = recode_factor(`_MENT14D`, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Bad',
+                                '9' = NA_character_)) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY1, 
+                                '1' = 'Yes',
+                                '2' = 'Yes',
+                                '3' = 'No',
+                                '4' = 'No',
+                                '5' = 'No',
+                                '6' = 'Yes',
+                                '7' = 'No',
+                                '8' = 'No',
+                                '9' = NA_character_)) %>%
+  mutate(Race = recode_factor(`_IMPRACE`,
+                                '1' = 'White, NH',
+                                '2' = 'Black, NH',
+                                '3' = 'Asian, NH',
+                                '4' = 'American Indian/Alaska Native,NH',
+                                '5' = 'Hispanic',
+                                '6' = 'Other, NH')) %>%
+  mutate(Age = `_AGE80`) %>%
+  mutate(AgeG = recode_factor(`_AGE_G`,
+                                '1' = '18-34',
+                                '2' = '18-34',
+                                '3' = '34+',
+                                '4' = '34+',
+                                '5' = '34+',
+                                '6' = '34+')) %>%
+  mutate(EDU = recode_factor(`_EDUCAG`,
+                                '1' = 'Less than High School',
+                                '2' = 'High School',
+                                '3' = 'College or Technical school',
+                                '4' = 'College or Technical school',
+                                '9' = NA_character_)) %>%
+  mutate(YEAR = 2020) %>%
+  select("RENTHOM", "GHLTH", "MHLTH", "EMPLOY", "Race", "Age", "AgeG", "EDU", "YEAR")
+summary(D20.little)
+```
+
+
+```{r}
+D19.little <- D19 %>%
+  filter(PREGNANT == 1 & `_INCOMG` %in% c('4','5')) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM1, 
+                                '1' = 'No',
+                                '2' = 'Yes',
+                                '3' = NA_character_,
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(GHLTH = recode_factor(GENHLTH, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Good',
+                                '4' = 'Bad',
+                                '5' = 'Bad',
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(MHLTH = recode_factor(`_MENT14D`, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Bad',
+                                '9' = NA_character_)) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY1, 
+                                '1' = 'Yes',
+                                '2' = 'Yes',
+                                '3' = 'No',
+                                '4' = 'No',
+                                '5' = 'No',
+                                '6' = 'Yes',
+                                '7' = 'No',
+                                '8' = 'No',
+                                '9' = NA_character_)) %>%
+  mutate(Race = recode_factor(`_IMPRACE`,
+                                '1' = 'White, NH',
+                                '2' = 'Black, NH',
+                                '3' = 'Asian, NH',
+                                '4' = 'American Indian/Alaska Native,NH',
+                                '5' = 'Hispanic',
+                                '6' = 'Other, NH')) %>%
+  mutate(Age = `_AGE80`) %>%
+  mutate(AgeG = recode_factor(`_AGE_G`,
+                                '1' = '18-34',
+                                '2' = '18-34',
+                                '3' = '34+',
+                                '4' = '34+',
+                                '5' = '34+',
+                                '6' = '34+')) %>%
+  mutate(EDU = recode_factor(`_EDUCAG`,
+                                '1' = 'Less than High School',
+                                '2' = 'High School',
+                                '3' = 'College or Technical school',
+                                '4' = 'College or Technical school',
+                                '9' = NA_character_)) %>%
+  mutate(YEAR = 2019) %>%
+  select("RENTHOM", "GHLTH", "MHLTH", "EMPLOY", "Race", "Age", "AgeG", "EDU", "YEAR") 
+summary(D19.little)
+```
+
+
+
+```{r}
+D18.little <- D18 %>%
+  filter(PREGNANT == 1 & `_INCOMG` %in% c('4','5')) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM1, 
+                                '1' = 'No',
+                                '2' = 'Yes',
+                                '3' = NA_character_,
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(GHLTH = recode_factor(GENHLTH, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Good',
+                                '4' = 'Bad',
+                                '5' = 'Bad',
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(MHLTH = recode_factor(`_MENT14D`, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Bad',
+                                '9' = NA_character_)) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY1, 
+                                '1' = 'Yes',
+                                '2' = 'Yes',
+                                '3' = 'No',
+                                '4' = 'No',
+                                '5' = 'No',
+                                '6' = 'Yes',
+                                '7' = 'No',
+                                '8' = 'No',
+                                '9' = NA_character_)) %>%
+  mutate(Race = recode_factor(`_IMPRACE`,
+                                '1' = 'White, NH',
+                                '2' = 'Black, NH',
+                                '3' = 'Asian, NH',
+                                '4' = 'American Indian/Alaska Native,NH',
+                                '5' = 'Hispanic',
+                                '6' = 'Other, NH')) %>%
+  mutate(Age = `_AGE80`) %>%
+  mutate(AgeG = recode_factor(`_AGE_G`,
+                                '1' = '18-34',
+                                '2' = '18-34',
+                                '3' = '34+',
+                                '4' = '34+',
+                                '5' = '34+',
+                                '6' = '34+')) %>%
+  mutate(EDU = recode_factor(`_EDUCAG`,
+                                '1' = 'Less than High School',
+                                '2' = 'High School',
+                                '3' = 'College or Technical school',
+                                '4' = 'College or Technical school',
+                                '9' = NA_character_)) %>%
+  mutate(YEAR = 2018) %>%
+  select("RENTHOM", "GHLTH", "MHLTH", "EMPLOY", "Race", "Age", "AgeG", "EDU", "YEAR") 
+summary(D18.little)
+```
+
+
+
+```{r}
+D17.little <- D17 %>%
+  filter(PREGNANT == 1 & `_INCOMG` %in% c('4','5')) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM1, 
+                                '1' = 'No',
+                                '2' = 'Yes',
+                                '3' = NA_character_,
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(GHLTH = recode_factor(GENHLTH, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Good',
+                                '4' = 'Bad',
+                                '5' = 'Bad',
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(MHLTH = recode_factor(`_MENT14D`, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Bad',
+                                '9' = NA_character_)) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY1, 
+                                '1' = 'Yes',
+                                '2' = 'Yes',
+                                '3' = 'No',
+                                '4' = 'No',
+                                '5' = 'No',
+                                '6' = 'Yes',
+                                '7' = 'No',
+                                '8' = 'No',
+                                '9' = NA_character_)) %>%
+  mutate(Race = recode_factor(`_IMPRACE`,
+                                '1' = 'White, NH',
+                                '2' = 'Black, NH',
+                                '3' = 'Asian, NH',
+                                '4' = 'American Indian/Alaska Native,NH',
+                                '5' = 'Hispanic',
+                                '6' = 'Other, NH')) %>%
+  mutate(Age = `_AGE80`) %>%
+  mutate(AgeG = recode_factor(`_AGE_G`,
+                                '1' = '18-34',
+                                '2' = '18-34',
+                                '3' = '34+',
+                                '4' = '34+',
+                                '5' = '34+',
+                                '6' = '34+')) %>%
+  mutate(EDU = recode_factor(`_EDUCAG`,
+                                '1' = 'Less than High School',
+                                '2' = 'High School',
+                                '3' = 'College or Technical school',
+                                '4' = 'College or Technical school',
+                                '9' = NA_character_)) %>%
+  mutate(YEAR = 2017) %>%
+  select("RENTHOM", "GHLTH", "MHLTH", "EMPLOY", "Race", "Age", "AgeG", "EDU", "YEAR") 
+summary(D17.little)
+```
+
+In 2016, variable `_IMPRACE` is not available and `_RACE` is used here.
+
+```{r}
+D16.little <- D16 %>%
+  filter(PREGNANT == 1 & `_INCOMG` %in% c('4','5')) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM1, 
+                                '1' = 'No',
+                                '2' = 'Yes',
+                                '3' = NA_character_,
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(GHLTH = recode_factor(GENHLTH, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Good',
+                                '4' = 'Bad',
+                                '5' = 'Bad',
+                                '7' = NA_character_,
+                                '9' = NA_character_)) %>%
+  mutate(MHLTH = recode_factor(`_MENT14D`, 
+                                '1' = 'Good',
+                                '2' = 'Good',
+                                '3' = 'Bad',
+                                '9' = NA_character_)) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY1, 
+                                '1' = 'Yes',
+                                '2' = 'Yes',
+                                '3' = 'No',
+                                '4' = 'No',
+                                '5' = 'No',
+                                '6' = 'Yes',
+                                '7' = 'No',
+                                '8' = 'No',
+                                '9' = NA_character_)) %>%
+  mutate(Race = recode_factor(`_RACE`,
+                                '1' = 'White, NH',
+                                '2' = 'Black, NH',
+                                '4' = 'Asian, NH',
+                                '3' = 'American Indian/Alaska Native,NH',
+                                '8' = 'Hispanic',
+                                '5' = 'Other, NH',
+                                '6' = 'Other, NH',
+                                '7' = 'Other, NH',
+                                '9' = NA_character_)) %>%
+  mutate(Age = `_AGE80`) %>%
+  mutate(AgeG = recode_factor(`_AGE_G`,
+                                '1' = '18-34',
+                                '2' = '18-34',
+                                '3' = '34+',
+                                '4' = '34+',
+                                '5' = '34+',
+                                '6' = '34+')) %>%
+  mutate(EDU = recode_factor(`_EDUCAG`,
+                                '1' = 'Less than High School',
+                                '2' = 'High School',
+                                '3' = 'College or Technical school',
+                                '4' = 'College or Technical school',
+                                '9' = NA_character_)) %>%
+  mutate(YEAR = 2016) %>%
+  select("RENTHOM", "GHLTH", "MHLTH", "EMPLOY", "Race", "Age", "AgeG", "EDU", "YEAR")
+summary(D16.little)
+```
+
+
+combine the datasets together and save
+```{r}
+D16_21 <- rbind(D16.little,D17.little,D18.little,D19.little,D20.little,D21.little) %>%
+  drop_na()
+write_xpt(D16_21,"/Users/jingjianwang/Documents/5245.01 Advanced Data Analysis/Final/LLCP1621.XPT")
+```

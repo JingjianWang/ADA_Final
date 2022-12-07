@@ -1,0 +1,465 @@
+---
+title: "The association of general/mental health status and housing tenure in pregnant women: a cross-sectional study"
+author: "Jingjian Wang"
+date: '2022-09-27'
+output:
+  html_document:
+    toc: yes
+    toc_depth: 5
+---
+
+## Background
+### About Research:
+
+1) **Research question**: What is the association between rent or owned home and general/mental health status in pregnant people during 2016-2021?
+
+2) **PICOT item in research question**:
+
++ Population = individuals who are pregnant, age between 18-54, with annual household income greater than \$35,000
+
++ Intervention = rent home
+
++ Comparison group = those who live in owned home
+
++ Outcome = general health status (fair or bad vs. excellent or good)
+
++ Timeframe = 2014-2021
+
+3) **Datasource**: BRFSS 2016-2021 surveys (<https://www.cdc.gov/brfss/annual_data/annual_data.htm> (Links to an external site.))
+
+4) **Variables**: RENTHOM1, GENHLTH, \_MEN14LD, PREGNANT, \_INCOMG1, \_INCOMG, \_AGE80, \_AGE_G, \_EDUCAG, \_IMPRACE, \_RACE, EMPLOY1
+
+5) **Data clean**: See Data Clean.Rmd. NAs have been dropped to make a complete case analysis
+
+## Analysis
+
+### load libraries
+
+```{r}
+pacman::p_load(haven, tidyverse, table1, dplyr, ggplot2, gghalves, car, odds.n.ends, broom, DiagrammeR)
+```
+
+### Import dataset
+
+```{r}
+BRFSS<-read_xpt(
+"LLCP1621.XPT",
+col_select = NULL,
+skip = 0,
+n_max = Inf,
+.name_repair = "unique"
+)
+```
+
+### recode dataset
+
+```{r}
+BRFSS.rec <- BRFSS %>%
+  mutate(RENTHOM = RENTHOM - 1) %>%
+  mutate(GHLTH = GHLTH - 1) %>%
+  mutate(MHLTH = MHLTH - 1) %>%
+  mutate(EMPLOY = EMPLOY - 1) %>%
+  mutate(Race = Race - 1) %>%
+  mutate(AgeG = AgeG - 1) %>%
+  mutate(EDU = EDU - 1) %>%
+  mutate(RENTHOM = recode_factor(RENTHOM, 
+                                '0' = 'No',
+                                '1' = 'Yes')) %>%
+  mutate(GHLTH = recode_factor(GHLTH, 
+                                '0' = 'Good',
+                                '1' = 'Bad')) %>%
+  mutate(MHLTH = recode_factor(MHLTH, 
+                                '0' = 'Good',
+                                '1' = 'Bad')) %>%
+  mutate(EMPLOY = recode_factor(EMPLOY, 
+                                '0' = 'Yes',
+                                '1' = 'No')) %>%
+  mutate(Race = recode_factor(Race,
+                                '0' = 'White, NH',
+                                '1' = 'Black, NH',
+                                '2' = 'Asian, NH',
+                                '3' = 'Other, NH',
+                                '4' = 'Hispanic',
+                                '5' = 'Other, NH')) %>%
+  mutate(AgeG = recode_factor(AgeG,
+                                '0' = '18-34',
+                                '1' = '34+')) %>%
+  mutate(EDU = recode_factor(EDU,
+                                '0' = 'Less than High School',
+                                '1' = 'High School',
+                                '2' = 'College or Technical school'))
+
+summary(BRFSS.rec)
+
+# I'm not sure about those who get pregnant after 54 years old - probably a data issue
+BRFSS.clean <- BRFSS.rec %>%
+  filter(Age < 55)
+
+```
+
+
+### Figure 1
+```{r}
+#Figure 1
+grViz("digraph flowchart {
+
+      # node definitions with substituted label text
+      node [fontname = Helvetica, shape = rectangle, fontsize=15] 
+      tab1 [label = '@@1']
+      tab2 [label = '@@2']
+      tab3 [label = '@@3']
+      tab4 [label = '@@4']
+      
+      # edge definitions with the node IDs are used to indicate how the rectangle boxes flow from each other.
+      tab1 -> tab2 
+      tab2 -> tab3 
+      tab3 -> tab4 
+}
+      #This set of code provides the text in each rectangle box.
+      [1]: 'Records received from BRFSS 2016-2021 survey n=2,632,674'
+      [2]: 'Including individuals who are pregnant with \\n annual household income more than $35,000 n=7,343'
+      [3]: 'Excluding 346 individuals with missing data \\n on variables used in the analysis n=6,997'
+      [4]: 'Excluding 2 individuals who are older than 54 years old n=6995'
+      ")
+
+```
+### Table 1
+
+```{r}
+
+label(BRFSS.clean$GHLTH) = "General Health Status"
+label(BRFSS.clean$MHLTH) = "Mental Health Status"
+label(BRFSS.clean$RENTHOM) = "Rent A House"
+label(BRFSS.clean$EMPLOY) = "Employed"
+label(BRFSS.clean$Age) = "Age (years)"
+label(BRFSS.clean$AgeG) = "Age (Grouped)"
+label(BRFSS.clean$Race) = "Race & Ethinicity"
+label(BRFSS.clean$EDU) = "Education Level"
+table1(~ MHLTH + RENTHOM + EMPLOY + Age + AgeG + Race + EDU | GHLTH,
+       render.continuous = c(. = "Median (IQR)"),
+       data = BRFSS.clean,
+       caption = "Outcomes and predictors by General Health Status")
+```
+
+#### `Age`
+##### `Age` Distribution
+
+```{r}
+
+BRFSS.clean %>%   
+  ggplot(aes(x = GHLTH, y = Age)) +
+  geom_half_violin(aes(fill = GHLTH), alpha = .4, side = "r") +
+  geom_half_point(aes(color = GHLTH), alpha = .8, side = "l") +
+  scale_fill_brewer(palette = "Dark2", guide = "none") +
+  scale_color_brewer(palette = "Dark2", guide = "none") +
+  scale_y_continuous(breaks = seq(12, 72, 6)) +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title.position = 'plot', plot.title = element_text(hjust = 0.5)) +
+  labs(x = "General Health Status", y = "Age (years)", title = "Age Distribution By General Health Status")
+```
+
+##### `Age` - Continuous or Categorical
+
+###### Box-Tidwell test
+
+```{r}
+# Box-Tidwell test, test the assumption of linearity
+BRFSS.clean$age_times_log_age<-BRFSS.clean$Age * log(BRFSS.clean$Age)
+
+testlinearity_G<-glm(GHLTH ~ Age + age_times_log_age, data=BRFSS.clean, family="binomial") 
+summary(testlinearity_G)
+testlinearity_M<-glm(MHLTH ~ Age + age_times_log_age, data=BRFSS.clean, family="binomial") 
+summary(testlinearity_M)
+```
+###### Interpretation
+
+```{r}
+# Since the p-value for age_times_log_age <.05, we reject the null hypothesis. The linearity assumption is not met using the Box-Tidwell test and Age cannot be modelling as a linear term. Instead, AgeG will be used.
+```
+
+
+### Daggity
+
+![Daggity](dagitty-model.png)
+
+### Model for General Health
+
+#### Model with only `RENTHOM` and `GENHLTH`
+```{r}
+modelGH0<-glm(GHLTH ~ RENTHOM, data=BRFSS.clean, family="binomial")
+tidy(modelGH0, conf.int=TRUE, exponentiate = TRUE)
+```
+##### Interpretation
+
+```{r}
+# For the unadjusted model, those who rent their houses had 121% higher odds of having bad general health status than those who own their houses (OR = 2.21; 95% CI 1.71-2.86; N = 6995) 
+```
+
+
+#### Model that includes `RENTHOM` + `AgeG` + `EDU` + `EMPLOY` + `Race` as covariates.
+
+```{r}
+modelGH1<-glm(GHLTH ~ RENTHOM + AgeG + EDU + EMPLOY + Race, data=BRFSS.clean, family="binomial")
+summary(modelGH1)
+tidy(modelGH1, conf.int=TRUE, exponentiate = TRUE)
+odds.n.ends(modelGH1)
+```
+
+##### Interpretation
+
+```{r}
+# For the adjusted model, those who rent their houses had 84% higher odds of having bad general health status than those who own their houses (OR = 1.84; 95% CI 1.40-2.42; N = 6995) 
+
+```
+##### Plot of Cook's Distance
+
+```{r}
+plot(modelGH1, which=4, id.n=4, col="red") 
+```
+
+##### Whether or not to exlude observations
+
+```{r}
+# Obtain Cook's Distance 
+modelGH1.data <- augment(modelGH1) %>% 
+  mutate(index = 1:n()) 
+
+# Set the cutoff value to 3 * mean of Cook's D, and then exclude observations with values greater than the cutoff value
+cuttoff_GH1 <- mean(modelGH1.data$.cooksd)*3
+
+# Since the outcome variable does not have balanced distribution, this would result in loss in the whole subgroup of those with negative health outcomes
+BRFSS.GH1<- modelGH1.data %>%
+  filter(.cooksd<cuttoff_GH1)
+summary(BRFSS.GH1)
+
+# As we can see from the result, there are 0 observations in 'Bad' group of GHLTH - The Cook's D values are not large and I'll go with the first model.
+```
+
+#### Confounder
+
+##### Confounder Age
+
+```{r}
+modelGH1Age<-glm(GHLTH ~ RENTHOM + EDU + EMPLOY + Race, data=BRFSS.clean, family="binomial")
+tidy(modelGH1Age, conf.int=TRUE, exponentiate = TRUE)
+```
+
+###### Interpretation
+
+```{r}
+# The variable AgeG does not change the OR by 10% (1.84 vs. 1.77)
+```
+
+##### Confounder Education
+
+```{r}
+modelGH1EDU<-glm(GHLTH ~ RENTHOM + AgeG + EMPLOY + Race, data=BRFSS.clean, family="binomial")
+tidy(modelGH1EDU, conf.int=TRUE, exponentiate = TRUE)
+```
+
+###### Interpretation
+
+```{r}
+# The variable EDU does not change the OR by 10% (1.84 vs. 1.98)
+```
+
+##### Confounder Employment
+
+```{r}
+modelGH1EMPLOY<-glm(GHLTH ~ RENTHOM + AgeG + EDU + Race, data=BRFSS.clean, family="binomial")
+tidy(modelGH1EMPLOY, conf.int=TRUE, exponentiate = TRUE)
+```
+
+
+
+###### Interpretation
+
+```{r}
+# The variable EMPLOY does not change the OR by 10% (1.84 vs. 1.85)
+```
+
+##### Confounder Race
+
+```{r}
+modelGH1Race<-glm(GHLTH ~ RENTHOM + AgeG + EMPLOY, data=BRFSS.clean, family="binomial")
+tidy(modelGH1Race, conf.int=TRUE, exponentiate = TRUE)
+```
+
+###### Interpretation
+
+```{r}
+# The variable Race changes the OR by 10% (1.84 vs. 2.25)
+```
+
+
+#### Effect Modifier
+
+##### Effect Modifier Employment
+
+```{r}
+modelGH1EM<-glm(GHLTH ~ RENTHOM + EMPLOY + EMPLOY*RENTHOM, data=BRFSS.clean, family="binomial")
+summary(modelGH1EM)
+```
+
+###### Interpretation
+
+```{r}
+# p > 0.05, there is no statistical evidence that the interaction term is significant. Effect modification is not observed.
+```
+
+
+### Model for Mental Health
+
+#### Model with only `RENTHOM` and `MHLTH`
+```{r}
+modelMH0<-glm(MHLTH ~ RENTHOM, data=BRFSS.clean, family="binomial")
+tidy(modelMH0, conf.int=TRUE, exponentiate = TRUE)
+```
+
+##### Interpretation
+
+```{r}
+# For the unadjusted model, those who rent their houses had 70% higher odds of having bad mental health status than those who own their houses (OR = 1.70; 95% CI 1.42-2.02; N = 6995).
+
+```
+
+#### Model that includes `RENTHOM` + `AgeG` + `EDU` + `EMPLOY` + `Race` as covariates.
+
+```{r}
+modelMH1<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY + Race, data=BRFSS.clean, family="binomial")
+summary(modelMH1)
+tidy(modelMH1, conf.int=TRUE, exponentiate = TRUE)
+odds.n.ends(modelMH1)
+```
+
+
+
+##### Interpretation
+
+```{r}
+# For the adjusted model, those who rent their houses had 49% higher odds of having bad mental health status than those who own their houses (OR = 1.49; 95% CI 1.24-1.80; N = 6995).
+```
+
+##### Plot of Cook's Distance
+
+```{r}
+plot(modelMH1, which=4, id.n=4, col="red") 
+```
+
+##### Whether or not to exlude observations
+
+```{r}
+# Obtain Cook's Distance 
+modelMH1.data <- augment(modelMH1) %>% 
+  mutate(index = 1:n()) 
+
+# Set the cutoff value to 3 * mean of Cook's D, and then exclude observations with values greater than the cutoff value
+cuttoff_MH1 <- mean(modelMH1.data$.cooksd)*3
+
+BRFSS.MH1<- modelMH1.data %>%
+  filter(.cooksd<cuttoff_MH1)
+summary(BRFSS.MH1)
+
+# For the same reason, most of the observations with 'Bad' Mental health outcome are excluded - I'll use the first model without exlusion since the Cook's D looks good in general.
+```
+
+
+#### Confounder
+##### Confounder Age
+
+```{r}
+modelMH1Age<-glm(MHLTH ~ RENTHOM + EDU + EMPLOY + Race, data=BRFSS.clean, family="binomial")
+tidy(modelMH1Age, conf.int=TRUE, exponentiate = TRUE)
+```
+
+
+###### Interpretation
+
+```{r}
+# The variable AgeG does not change the OR by 10% (1.49 vs. 1.51)
+```
+
+##### Confounder Education
+
+```{r}
+modelMH1EDU<-glm(MHLTH ~ RENTHOM + AgeG + EMPLOY + Race, data=BRFSS.clean, family="binomial")
+tidy(modelMH1EDU, conf.int=TRUE, exponentiate = TRUE)
+```
+
+###### Interpretation
+
+```{r}
+# The variable EDU does not change the OR by 10% (1.49 vs. 1.57)
+```
+
+##### Confounder Employment
+
+```{r}
+modelMH1EMPLOY<-glm(MHLTH ~ RENTHOM + AgeG + EDU + Race, data=BRFSS.clean, family="binomial")
+tidy(modelMH1EMPLOY, conf.int=TRUE, exponentiate = TRUE)
+```
+
+###### Interpretation
+
+```{r}
+# The variable EMPLOY does not change the OR by 10% (1.49 vs. 1.50)
+```
+
+
+##### Confounder Race
+
+```{r}
+modelMH1Race<-glm(MHLTH ~ RENTHOM + AgeG + EMPLOY, data=BRFSS.clean, family="binomial")
+tidy(modelMH1Race, conf.int=TRUE, exponentiate = TRUE)
+```
+
+###### Interpretation
+
+```{r}
+# The variable Race changes the OR by 10% (1.49 vs. 1.66)
+```
+
+#### Effect Modifier
+##### Effect Modifier Employment
+
+```{r}
+modelMH1EM<-glm(MHLTH ~ RENTHOM + EMPLOY + EMPLOY*RENTHOM, data=BRFSS.clean, family="binomial")
+summary(modelMH1EM)
+```
+
+###### Interpretation
+
+```{r}
+# p > 0.05, there is no statistical evidence that the interaction term is significant. Effect modification is not observed.
+```
+
+
+## Discussion
+
+### Findings
+
+
+1) Those who rent their houses had 84% higher odds of having bad general health status than those who own their houses (OR = 1.84; 95% CI 1.40-2.42; N = 6995), adjusting for age, education, employment, and race. 
+2) Those who rent their houses had 49% higher odds of having bad mental health status than those who own their houses (OR = 1.49; 95% CI 1.24-1.80; N = 6995), adjusting for age, education, employment, and race. 
+3) Effect modification was not observed.
+4) Race changes the ORs by 10%, which shows that race is a true confounder.
+
+
+### Limitations
+
+
+1) The independent variable only shows housing tenure but cannot take detailed context of housing into account.
+2) The model is not good at prediction because the distribution of dependent variables is not balanced - more than 90% with "Good" Health status.
+3) The variable income was restricted but not controlled in the model since the limited categories from BRFSS survey – there could be residual confounding.
+
+
+
+## Conclusion
+
+1) The results suggest that those who rent their houses have higher odds of having bad general and mental health status. 
+2) Employment is not an effect modifier. 
+3) This understanding can raise people’s awareness about housing problems and provide a new direction for future studies. 
+4) Further research is needed to identify mechanisms for the association between housing tenure and health status.
+
+
