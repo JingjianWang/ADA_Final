@@ -181,7 +181,7 @@ summary(testlinearity_M)
 
 ### Daggity
 
-![Daggity](dagitty-model.png)
+![Daggity](dagitty-model _revised.png)
 
 ### Model for General Health
 
@@ -491,10 +491,10 @@ tidy(modelMH1Hispanic, conf.int=TRUE, exponentiate = TRUE)
 ```{r}
 # Adjusting for age, education, and employment, among
 # White - those who rent their houses had 80% higher odds of having bad mental health status than those who own their houses (OR = 1.80; 95% CI 1.44-2.24; N = 5262).
-# Black - (OR = 1.97; 95% CI 1.06-3.80; N = 382).
-# Asian - (OR = 0.44; 95% CI 0.10-1.50; N = 301).
-# Other - (OR = 0.71; 95% CI 0.35-1.38; N = 313).
-# Hispanic - (OR = 0.96; 95% CI 0.56-1.65; N = 639).
+# Black - those who rent their houses had 97% higher odds of having bad mental health status than those who own their houses (OR = 1.97; 95% CI 1.06-3.80; N = 382).
+# Asian - Not significant (OR = 0.44; 95% CI 0.10-1.50; N = 301).
+# Other - Not significant (OR = 0.71; 95% CI 0.35-1.38; N = 313).
+# Hispanic - Not significant (OR = 0.96; 95% CI 0.56-1.65; N = 639).
 # All - (OR = 1.57; 95% CI 1.31-1.88; N = 6995).
 ```
 
