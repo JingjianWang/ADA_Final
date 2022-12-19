@@ -36,7 +36,7 @@ output:
 ### load libraries
 
 ```{r}
-pacman::p_load(haven, tidyverse, table1, dplyr, ggplot2, gghalves, car, odds.n.ends, broom, DiagrammeR)
+pacman::p_load(haven, tidyverse, table1, dplyr, ggplot2, gghalves, car, odds.n.ends, broom, DiagrammeR, lmtest)
 ```
 
 ### Import dataset
@@ -298,8 +298,9 @@ tidy(modelGH1Race, conf.int=TRUE, exponentiate = TRUE)
 ##### Effect Modifier Employment
 
 ```{r}
-modelGH1EM<-glm(GHLTH ~ RENTHOM + EMPLOY + EMPLOY*RENTHOM, data=BRFSS.clean, family="binomial")
-summary(modelGH1EM)
+modelGH1EMEm<-glm(GHLTH ~ RENTHOM + AgeG + EDU + EMPLOY + Race + EMPLOY*RENTHOM, data=BRFSS.clean, family="binomial")
+summary(modelGH1EMEm)
+lrtest(modelGH1,modelGH1EMEm)
 ```
 
 ###### Interpretation
@@ -308,6 +309,20 @@ summary(modelGH1EM)
 # p > 0.05, there is no statistical evidence that the interaction term is significant. Effect modification is not observed.
 ```
 
+
+##### Effect Modifier Race
+
+```{r}
+modelGH1EMRace<-glm(GHLTH ~ RENTHOM + AgeG + EDU + EMPLOY + Race + Race*RENTHOM, data=BRFSS.clean, family="binomial")
+summary(modelGH1EMRace)
+lrtest(modelGH1,modelGH1EMRace)
+```
+
+###### Interpretation
+
+```{r}
+# p > 0.05, there is no statistical evidence that the interaction term is significant. Effect modification is not observed.
+```
 
 ### Model for Mental Health
 
@@ -424,14 +439,63 @@ tidy(modelMH1Race, conf.int=TRUE, exponentiate = TRUE)
 ##### Effect Modifier Employment
 
 ```{r}
-modelMH1EM<-glm(MHLTH ~ RENTHOM + EMPLOY + EMPLOY*RENTHOM, data=BRFSS.clean, family="binomial")
-summary(modelMH1EM)
+modelMH1EMEm<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY + Race + EMPLOY*RENTHOM, data=BRFSS.clean, family="binomial")
+summary(modelMH1EMEm)
+lrtest(modelMH1,modelMH1EMEm)
 ```
 
 ###### Interpretation
 
 ```{r}
 # p > 0.05, there is no statistical evidence that the interaction term is significant. Effect modification is not observed.
+```
+
+##### Effect Modifier Race
+
+```{r}
+modelMH1EMRace<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY + Race + Race*RENTHOM, data=BRFSS.clean, family="binomial")
+summary(modelMH1EMRace)
+lrtest(modelMH1,modelMH1EMRace)
+```
+
+###### Interpretation
+
+```{r}
+# p < 0.01, the interaction term is significant via the LR test, so models will be run stratified by race
+```
+
+#### Model stratified by Race
+```{r}
+# All
+modelMH1All<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY, data=BRFSS.clean, family="binomial")
+tidy(modelMH1All, conf.int=TRUE, exponentiate = TRUE)
+# White
+modelMH1White<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY, data=BRFSS.clean[which(BRFSS.clean$Race=="White, NH"),], family="binomial")
+tidy(modelMH1White, conf.int=TRUE, exponentiate = TRUE)
+# Black
+modelMH1Black<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY, data=BRFSS.clean[which(BRFSS.clean$Race=="Black, NH"),], family="binomial")
+tidy(modelMH1Black, conf.int=TRUE, exponentiate = TRUE)
+# Asian
+modelMH1Asian<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY, data=BRFSS.clean[which(BRFSS.clean$Race=="Asian, NH"),], family="binomial")
+tidy(modelMH1Asian, conf.int=TRUE, exponentiate = TRUE)
+# Other
+modelMH1Other<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY, data=BRFSS.clean[which(BRFSS.clean$Race=="Other, NH"),], family="binomial")
+tidy(modelMH1Other, conf.int=TRUE, exponentiate = TRUE)
+# Hispanic
+modelMH1Hispanic<-glm(MHLTH ~ RENTHOM + AgeG + EDU + EMPLOY, data=BRFSS.clean[which(BRFSS.clean$Race=="Hispanic"),], family="binomial")
+tidy(modelMH1Hispanic, conf.int=TRUE, exponentiate = TRUE)
+```
+
+##### Interpretation
+
+```{r}
+# Adjusting for age, education, and employment, among
+# White - those who rent their houses had 80% higher odds of having bad mental health status than those who own their houses (OR = 1.80; 95% CI 1.44-2.24; N = 5262).
+# Black - (OR = 1.97; 95% CI 1.06-3.80; N = 382).
+# Asian - (OR = 0.44; 95% CI 0.10-1.50; N = 301).
+# Other - (OR = 0.71; 95% CI 0.35-1.38; N = 313).
+# Hispanic - (OR = 0.96; 95% CI 0.56-1.65; N = 639).
+# All - (OR = 1.57; 95% CI 1.31-1.88; N = 6995).
 ```
 
 
@@ -441,9 +505,10 @@ summary(modelMH1EM)
 
 
 1) Those who rent their houses had 84% higher odds of having bad general health status than those who own their houses (OR = 1.84; 95% CI 1.40-2.42; N = 6995), adjusting for age, education, employment, and race. 
-2) Those who rent their houses had 49% higher odds of having bad mental health status than those who own their houses (OR = 1.49; 95% CI 1.24-1.80; N = 6995), adjusting for age, education, employment, and race. 
-3) Effect modification was not observed.
-4) Race changes the ORs by 10%, which shows that race is a true confounder.
+2) Among White, those who rent their houses had 80% higher odds of having bad mental health status than those who own their houses (OR = 1.80; 95% CI 1.44-2.24; N = 5262), adjusting for age, education, and employment. 
+3) Among Black, those who rent their houses had 97% higher odds of having bad mental health status than those who own their houses (OR = 1.97; 95% CI 1.06-3.80; N = 382), adjusting for age, education, and employment. 
+4) Race is an effect modifier for the association between housing tenure and mental health status.
+5) Race changes the ORs by 10%, which shows that race is a true confounder.
 
 
 ### Limitations
@@ -458,7 +523,7 @@ summary(modelMH1EM)
 ## Conclusion
 
 1) The results suggest that those who rent their houses have higher odds of having bad general and mental health status. 
-2) Employment is not an effect modifier. 
+2) Employment is not an effect modifier, but Race is. 
 3) This understanding can raise people’s awareness about housing problems and provide a new direction for future studies. 
 4) Further research is needed to identify mechanisms for the association between housing tenure and health status.
 
